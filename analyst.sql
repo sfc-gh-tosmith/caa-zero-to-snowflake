@@ -37,12 +37,13 @@
 
 -- This notebook follows the "Getting Started with Snowflake Quickstart" found at https://quickstarts.snowflake.com/guide/getting_started_with_snowflake/index.html?index=..%2F..index#5
 
+-- Steps start at step 5 of the Quickstart
 
 -- SECTION: STRUCTURED DATA LOADING
 -- **** Step 5. Loading Structured Data into Snowflake: CSVs ****
 
 -- Create the database in the UI, or use below command
--- CREATE DATABASE CYBERSYN;
+--CREATE DATABASE CYBERSYN;
 
 -- Set context to use CYBERSYN database
 -- Context setting is important in Snowflake - it establishes the working database/schema
@@ -67,7 +68,11 @@ permid_quote_id variant);
 
 
 -- Here we use the UI to create an external stage referencing a public S3 bucket
--- When creating bucket, it's important to note that in a real world, this bucket would be locked down
+-- When creating bucket, it's important to note that in a real world scenario, this bucket would be locked down with authentication policies
+-- In the UI, go to Databases > CYBERSYN > Schemas > PUBLIC > Create Stage > Amazon S3
+-- Bucket name: cybersyn_company_metadata
+-- Bucket URL: s3://sfquickstarts/zero_to_snowflake/cybersyn-consumer-company-metadata-csv/
+-- Then click Create
 
 
 -- File Format: Snowflake's way to define how to parse files during loading
@@ -110,6 +115,7 @@ CREATE TABLE sec_filings_attributes (v variant);
 
 -- External Stage: Points to cloud storage (S3, Azure, GCS) without moving data
 -- Snowflake can query data directly from cloud storage or load it into tables
+-- This is the same thing we did before, but with SQL code instead of the UI
 CREATE STAGE cybersyn_sec_filings
 url = 's3://sfquickstarts/zero_to_snowflake/cybersyn_cpg_sec_filings/';
 
@@ -165,13 +171,9 @@ SELECT *
 FROM sec_filings_index_view
 LIMIT 20;
 
-
--- Utilize Snowflake's new AI_FILTER to join where names might not match exactly
--- On display: JSON notation (from the view) and Snowflake's easy, efficient, trusted AI
-SELECT cm.COMPANY_NAME, fi.company_name
-FROM COMPANY_METADATA cm 
-join sec_filings_index_view fi on AI_FILTER(PROMPT('Evaluate if this company:\n {0} \n\n is the same as this one:\n{1}', cm.company_name, fi.company_name));
-
+SELECT *
+FROM sec_filings_attributes_view
+LIMIT 20;
 
 
 -- SECTION: MARKETPLACE DATA
@@ -203,6 +205,19 @@ FROM Financial__Economic_Essentials.cybersyn.stock_price_timeseries ts  -- Marke
 INNER JOIN company_metadata meta
 ON ts.ticker = meta.primary_ticker
 WHERE ts.variable_name = 'Post-Market Close';
+
+-- **** Enhanced AI SQL Functions Demo ****
+-- Demonstrating Snowflake's new AI-powered SQL functions for intelligent data analysis. See AISQL documentation https://docs.snowflake.com/en/user-guide/snowflake-cortex/aisql
+
+-- AI_AGG can look across all records and synthesize information. See AI_AGG documentation https://docs.snowflake.com/en/sql-reference/functions/ai_agg
+SELECT ai_agg(companies.company_name, 'Give me a breakdown of the industries represented by this list of companies: {0}') as industries_breakdown
+FROM 
+(
+SELECT DISTINCT meta.company_name
+FROM Financial__Economic_Essentials.cybersyn.stock_price_timeseries ts  -- Marketplace data access
+INNER JOIN company_metadata meta
+) companies; 
+
 
 -- Results Cache Demo: Run this query twice to demonstrate Snowflake's automatic result caching
 -- First run uses compute warehouse, second run returns cached results instantly (24-hour cache)
@@ -317,6 +332,8 @@ SELECT * FROM company_metadata;
 -- SECTION: SECURITY AND ROLES
 -- ** Step 10. Working with Roles, Account Admin, & Account Usage **
 
+-- It's likely that an Analyst persona would not have the privileges necessary to execute the below code. The code is given for demonstration purposes only. 
+
 -- Admins can visualize roles in Admin -> Users & Roles -> Roles -> Graph
 
 -- Role-Based Access Control (RBAC): Snowflake's security model
@@ -343,14 +360,16 @@ USE WAREHOUSE compute_wh;
 
 
 -- SECTION: DATA SHARING
--- **** 11. Sharing Data Securely via Snowflake Marketplace ****
+-- **** Step 11. Sharing Data Securely via Snowflake Marketplace ****
+
+-- It's likely that an Analyst persona would not have the privileges necessary to create a share. The code is given for demonstration purposes only.
 
 -- Data Sharing: Unique Snowflake feature allowing secure data sharing without data movement
 -- Shared data is live and always current - no ETL needed
--- Navigate to "Data Products" then "Private Sharing" then "Create a Direct Share"
+-- Navigate to "Data Products" then "Private Sharing" then "Create a Direct Share". Must be ACCOUNTADMIN or have sharing privileges
 
-
--- **** 12. Resetting Your Snowflake Environment ****
+-- SECTION: CLEANUP
+-- **** Step 12. Resetting Your Snowflake Environment ****
 USE ROLE accountadmin;
 
 DROP DATABASE IF EXISTS CYBERSYN;
