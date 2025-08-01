@@ -20,5 +20,5 @@ This code is centered around an Analyst persona, covering the following:
 - Switching roles
 
 ## How to Run
-Copy and paste the SQL code into your Snowflake environment, then walk through it step by step. Your permissions may be insufficient for some parts of the lab; please reach out to your account administrator if that is the case.
+Download the .ipynb file and create a new Notebook in Snowflake using the "Create from .ipynb file" option in the Notebooks interface.
 
